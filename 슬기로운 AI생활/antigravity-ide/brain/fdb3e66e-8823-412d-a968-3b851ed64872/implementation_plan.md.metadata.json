@@ -1,6 +1,0 @@
-{
-  "summary": "안국역 700그루의 디지털 떡갈나무 프로젝트를 모바일/데스크톱 반응형 PWA(Progressive Web App) 규격의 완전한 Web App으로 전환하기 위한 기술 구현 계획서입니다. PWA 매니페스트, 서비스 워커, 모바일 바텀 내비게이션/드래그 시트 UI, 실시간 플로깅 트래커, 8단계 나무 성장 인터랙션, 인증서 생성기, npm 실행 환경 구축 내용을 포함합니다.",
-  "updatedAt": "2026-09-15T11:08:56.500709Z",
-  "requestFeedback": true,
-  "userFacing": true
-}
