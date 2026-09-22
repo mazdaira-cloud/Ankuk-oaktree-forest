@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>안국 700 떡갈나무: 디지털 사회적 조각 (Anguk 700 Digital Oaks)</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#047857">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="700 떡갈나무">
+  <meta name="description" content="요셉 보이스의 사회적 조각 철학 기반 안국역 시민 플로깅 및 지자체 행정 제안 PWA Web App">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/icons/icon.svg">
+
+  <!-- Leaflet.js CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <div id="app">
+    <!-- PWA Install Banner (Shown when installable) -->
+    <div class="pwa-install-banner" id="pwa-install-banner">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">📲</span>
+        <div>
+          <div style="font-size:12.5px; font-weight:800;">700 떡갈나무 앱으로 설치하기</div>
+          <div style="font-size:10.5px; opacity:0.85;">홈 화면에 추가하여 지도와 플로깅을 더 빠르게 이용하세요</div>
+        </div>
+      </div>
+      <button class="btn-primary" id="pwa-install-banner-btn" style="width:auto; padding:6px 12px; font-size:11.5px; border-radius:16px;">
+        설치하기
+      </button>
+    </div>
+
+    <!-- Live Plogging Tracker HUD (Floating Top Bar) -->
+    <div class="plogging-live-hud" id="plogging-live-hud">
+      <div class="hud-stat-item">
+        <span class="hud-stat-lbl">시간</span>
+        <span class="hud-stat-val" id="hud-time">00:00</span>
+      </div>
+      <div class="hud-stat-item">
+        <span class="hud-stat-lbl">이동거리</span>
+        <span class="hud-stat-val" id="hud-distance">0.00 km</span>
+      </div>
+      <div class="hud-stat-item">
+        <span class="hud-stat-lbl">소모</span>
+        <span class="hud-stat-val" id="hud-calories">0 kcal</span>
+      </div>
+      <div class="hud-stat-item">
+        <span class="hud-stat-lbl">수거</span>
+        <span class="hud-stat-val" id="hud-trash" style="color:#f59e0b;">0개</span>
+      </div>
+      <div class="hud-actions">
+        <button class="btn-hud-action" id="btn-hud-trash-add" title="쓰레기 수거 +1 카운트">
+          <span>🗑️</span> <span>+1</span>
+        </button>
+        <button class="btn-hud-action" id="btn-hud-pause">
+          <span>⏸️</span> <span>일시정지</span>
+        </button>
+        <button class="btn-hud-action btn-hud-finish" id="btn-hud-finish">
+          <span>🏁</span> <span>완료</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Header (Desktop + Mobile) -->
+    <header class="app-header">
+      <div class="brand-badge" onclick="window.AppStore.switchTab('dashboard')">
+        <div class="brand-icon">🌳</div>
+        <div>
+          <h1 style="font-size: 14px; font-weight: 800; line-height: 1.1; color: var(--text-main);">700그루의 디지털 떡갈나무</h1>
+          <p style="font-size: 10.5px; color: #047857; font-weight: 700;">안국역 디지털 사회적 조각 • PWA Web App</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (Desktop) -->
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="dashboard">
+          <span>📍</span> <span>거점 숲 지도</span>
+        </button>
+        <button class="tab-btn" data-tab="course">
+          <span>🏃</span> <span>순회 코스</span>
+        </button>
+        <button class="tab-btn" data-tab="report">
+          <span>📸</span> <span>신규 거점 제보</span>
+        </button>
+        <button class="tab-btn" data-tab="zerowaste">
+          <span>🌿</span> <span>에코 샵 & 녹지</span>
+        </button>
+      </nav>
+
+      <!-- Header Actions -->
+      <div class="header-actions">
+        <button class="btn-pwa-install" id="btn-pwa-install" title="웹 앱 설치하기">
+          <span>📲</span> <span>앱 설치</span>
+        </button>
+        <button class="btn-theme-toggle" id="btn-toggle-theme" title="다크/라이트 모드 전환">
+          <span>🌙</span>
+        </button>
+        <button class="btn-admin-report" id="btn-open-admin-report" title="종로구청/환경부 제안용 리포트">
+          <span>🏛️</span> <span>지자체 리포트</span>
+        </button>
+        <div class="mileage-chip" id="btn-open-wallet" title="내 도토리 마일리지 & 쿠폰">
+          <span>🌰</span>
+          <span id="header-mileage-val">700 P</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main View: Full Map + Dynamic Floating Panel -->
+    <main class="main-view">
+      <!-- Leaflet Interactive Map -->
+      <div id="map-container"></div>
+
+      <!-- Map Floating Utility Controls (Right Side) -->
+      <div class="map-floating-controls">
+        <button class="map-btn" onclick="window.CleanRouteMapInstance.panTo(37.5765, 126.9855, 16)" title="안국역 중심으로 이동">
+          🎯
+        </button>
+        <button class="map-btn" onclick="window.AppStore.fetchRealGps()" title="실제 GPS 측정">
+          🧭
+        </button>
+        <button class="map-btn" onclick="window.AppStore.openAdminReportModal()" title="지자체 행정 리포트">
+          🏛️
+        </button>
+      </div>
+
+      <!-- ========================================================
+           PAGE 1: 메인 핫스팟 & 떡갈나무 대시보드 패널
+           ======================================================== -->
+      <section class="page-panel" id="panel-dashboard">
+        <div class="panel-header">
+          <div>
+            <h2 style="font-size: 14.5px; font-weight: 800; color: var(--text-main);">안국역 떡갈나무 거점 모니터링</h2>
+            <p style="font-size: 10.5px; color: var(--text-muted);">요셉 보이스의 사회적 조각 육성 시스템</p>
+          </div>
+          <span style="font-size: 10.5px; background: #ecfdf5; color: #047857; font-weight: 700; padding: 2px 7px; border-radius: 12px;">실시간 연동</span>
+        </div>
+
+        <div class="panel-body">
+          <!-- Philosophical Concept Quote Banner -->
+          <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #f8fafc; border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; font-size: 11px;">
+            <div style="font-weight: 700; color: #34d399; margin-bottom: 2px;">🎨 사회적 조각 (Social Sculpture)</div>
+            <p style="opacity: 0.9; line-height: 1.35;">"모든 인간은 예술가이며, 도시의 상처를 직접 치유할 수 있다." 시민이 쓰레기를 치울 때마다 현무암 돌기둥에서 8단계 생명의 나무가 자라납니다.</p>
+          </div>
+
+          <!-- Real-time KPI Stats -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-value" id="kpi-active-count" style="color: var(--text-main);">10</div>
+              <div class="kpi-label">총 모니터링 거점</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-value" id="kpi-resolved-count" style="color: #059669;">0</div>
+              <div class="kpi-label">수호목 달성 (Lv.5+)</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-value" id="kpi-trash-sum" style="color: #d97706;">0회</div>
+              <div class="kpi-label">누적 시민 정화(Exp)</div>
+            </div>
+          </div>
+
+          <!-- Quick Live Tracker Trigger Button -->
+          <button id="btn-start-tracker" class="btn-primary" style="margin-bottom: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+            🏃 실시간 플로깅 운동 트래킹 시작
+          </button>
+
+          <!-- Filter 1: 취약도 및 사각지대 필터 -->
+          <div class="filter-group">
+            <div class="filter-title"><span>🔍</span> 거점 상태 및 사각지대 필터</div>
+            <div class="chip-container">
+              <button class="chip-btn active" data-filter="density" data-val="ALL">전체 거점</button>
+              <button class="chip-btn" data-filter="density" data-val="BLINDSPOT" style="border-color:#fca5a5; color:#b91c1c;">
+                🚨 쓰레기통 사각지대 (50m 밖)
+              </button>
+              <button class="chip-btn" data-filter="density" data-val="CAUTION">🌱 성장 중 (Lv.0~3)</button>
+              <button class="chip-btn" data-filter="density" data-val="GROWN">🌳 거목/세계수 (Lv.4+)</button>
+            </div>
+          </div>
+
+          <!-- Filter 2: 쓰레기 유형 -->
+          <div class="filter-group">
+            <div class="filter-title"><span>🗑️</span> 주요 투기 폐기물</div>
+            <div class="chip-container">
+              <button class="chip-btn active" data-filter="trashType" data-val="ALL">전체</button>
+              <button class="chip-btn" data-filter="trashType" data-val="일회용 컵">일회용 컵</button>
+              <button class="chip-btn" data-filter="trashType" data-val="담배꽁초">담배꽁초</button>
+              <button class="chip-btn" data-filter="trashType" data-val="비닐·포장재">비닐·포장재</button>
+            </div>
+          </div>
+
+          <!-- Filter 3: 레이어 토글 -->
+          <div class="filter-group">
+            <div class="filter-title"><span>🗺️</span> 지도 레이어 제어</div>
+            
+            <label class="toggle-item">
+              <span style="font-weight: 600;">🌳 8단계 떡갈나무 성장 거점</span>
+              <div class="toggle-switch">
+                <input type="checkbox" class="toggle-layer-chk" data-layer="hotspots" checked>
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+
+            <label class="toggle-item">
+              <span style="font-weight: 600;">🗑️ 종로구 공공 쓰레기통 (OA-15069)</span>
+              <div class="toggle-switch">
+                <input type="checkbox" class="toggle-layer-chk" data-layer="bins" checked>
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+
+            <label class="toggle-item">
+              <span style="font-weight: 600;">🔵 쓰레기통 50m 유효 버퍼(커버리지)</span>
+              <div class="toggle-switch">
+                <input type="checkbox" class="toggle-layer-chk" data-layer="buffers" checked>
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+
+            <label class="toggle-item">
+              <span style="font-weight: 600;">🏃 추천 플로깅 순회 노선 (LineString)</span>
+              <div class="toggle-switch">
+                <input type="checkbox" class="toggle-layer-chk" data-layer="route" checked>
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+
+            <label class="toggle-item">
+              <span style="font-weight: 600;">🌿 안국역 에코 & 제로웨이스트 샵</span>
+              <div class="toggle-switch">
+                <input type="checkbox" class="toggle-layer-chk" data-layer="zeroWaste" checked>
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+
+            <label class="toggle-item">
+              <span style="font-weight: 600;">🌳 도심 녹지 & 휴식 쉼터 (열린송현·정독 등)</span>
+              <div class="toggle-switch">
+                <input type="checkbox" class="toggle-layer-chk" data-layer="greenSpaces" checked>
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           PAGE 2: 맞춤형 플로깅 코스 추천 및 트래킹 패널
+           ======================================================== -->
+      <section class="page-panel hidden" id="panel-course">
+        <div class="panel-header">
+          <div>
+            <h2 style="font-size: 14.5px; font-weight: 800; color: var(--text-main);">맞춤 플로깅 코스 추천</h2>
+            <p style="font-size: 10.5px; color: var(--text-muted);">사각지대 정화 후 쓰레기통 연계 분리배출</p>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <div class="form-group">
+            <label class="form-label">🚩 출발 지점 선택</label>
+            <select class="form-select" id="course-start-select">
+              <option value="START_01">안국역 3번 출구 (계동길 방면)</option>
+              <option value="START_02">안국역 2번 출구 (북촌 방면)</option>
+              <option value="START_03">안국역 6번 출구 (인사동 입구)</option>
+              <option value="START_04">헌법재판소 정문 앞</option>
+              <option value="START_05">익선동 입구 (운현궁 방면)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">⏱️ 목표 플로깅 시간</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+              <label style="border:1px solid var(--card-border); padding:8px; border-radius:10px; font-size:12px; text-align:center; cursor:pointer;">
+                <input type="radio" name="course-time" value="30m" checked>
+                <div style="font-weight:700; margin-top:2px;">30분</div>
+                <div style="color:var(--text-muted); font-size:10px;">약 1.5km</div>
+              </label>
+              <label style="border:1px solid var(--card-border); padding:8px; border-radius:10px; font-size:12px; text-align:center; cursor:pointer;">
+                <input type="radio" name="course-time" value="60m">
+                <div style="font-weight:700; margin-top:2px;">1시간</div>
+                <div style="color:var(--text-muted); font-size:10px;">약 3.0km</div>
+              </label>
+              <label style="border:1px solid var(--card-border); padding:8px; border-radius:10px; font-size:12px; text-align:center; cursor:pointer;">
+                <input type="radio" name="course-time" value="free">
+                <div style="font-weight:700; margin-top:2px;">자유 순회</div>
+                <div style="color:var(--text-muted); font-size:10px;">사각지대 올인원</div>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🗺️ 순회 테마</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+              <label style="border:1px solid var(--card-border); padding:8px; border-radius:10px; font-size:12px; text-align:center; cursor:pointer;">
+                <input type="radio" name="course-theme" value="alley" checked>
+                <div style="font-weight:700; margin-top:2px;">골목 사각지대</div>
+                <div style="color:var(--text-muted); font-size:10px;">북촌/익선동</div>
+              </label>
+              <label style="border:1px solid var(--card-border); padding:8px; border-radius:10px; font-size:12px; text-align:center; cursor:pointer;">
+                <input type="radio" name="course-theme" value="tourist">
+                <div style="font-weight:700; margin-top:2px;">관광 문화재</div>
+                <div style="color:var(--text-muted); font-size:10px;">인사동/창덕궁</div>
+              </label>
+              <label style="border:1px solid var(--card-border); padding:8px; border-radius:10px; font-size:12px; text-align:center; cursor:pointer;">
+                <input type="radio" name="course-theme" value="flat">
+                <div style="font-weight:700; margin-top:2px;">평지 보행로</div>
+                <div style="color:var(--text-muted); font-size:10px;">율곡로 대로변</div>
+              </label>
+            </div>
+          </div>
+
+          <button id="btn-generate-course" class="btn-primary" style="margin-top: 6px;">
+            ✨ 최적 떡갈나무 플로깅 루트 자동 생성
+          </button>
+
+          <!-- Result Card -->
+          <div id="course-result-card" style="display: none; margin-top: 14px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 14px; padding: 14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+              <span style="font-size:12px; font-weight:800; color:#15803d;">추천 순회 노선 완성</span>
+              <span style="font-size:11px; background:#dcfce7; color:#166534; font-weight:700; padding:2px 8px; border-radius:6px;">50m 버퍼 연계</span>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+              <div style="background:#ffffff; padding:8px; border-radius:8px; text-align:center; border:1px solid #bbf7d0;">
+                <div style="font-size:15px; font-weight:800; color:#0f172a;" id="res-distance">0 km</div>
+                <div style="font-size:10px; color:#64748b;">이동 거리</div>
+              </div>
+              <div style="background:#ffffff; padding:8px; border-radius:8px; text-align:center; border:1px solid #bbf7d0;">
+                <div style="font-size:15px; font-weight:800; color:#16a34a;" id="res-time">0 분</div>
+                <div style="font-size:10px; color:#64748b;">소요 시간</div>
+              </div>
+              <div style="background:#ffffff; padding:8px; border-radius:8px; text-align:center; border:1px solid #bbf7d0;">
+                <div style="font-size:15px; font-weight:800; color:#ea580c;" id="res-calories">0 kcal</div>
+                <div style="font-size:10px; color:#64748b;">소모 칼로리</div>
+              </div>
+              <div style="background:#ffffff; padding:8px; border-radius:8px; text-align:center; border:1px solid #bbf7d0;">
+                <div style="font-size:15px; font-weight:800; color:#dc2626;" id="res-trash">0 개</div>
+                <div style="font-size:10px; color:#64748b;">수거 기대 쓰레기</div>
+              </div>
+            </div>
+
+            <div style="background:#ffffff; border:1px dashed #2563eb; border-radius:8px; padding:8px; margin-bottom:10px; font-size:12px;">
+              <strong style="color:#1d4ed8;">🏁 최종 배출 목적지:</strong>
+              <div id="res-end-bin" style="font-weight:700; color:#0f172a; margin-top:2px;">-</div>
+            </div>
+
+            <div style="font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">📍 경유지 안내</div>
+            <div id="course-waypoints-list" style="max-height: 130px; overflow-y:auto; background:#ffffff; border-radius:8px; padding:6px; border:1px solid #e2e8f0; margin-bottom:10px;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           PAGE 3: 신규 떡갈나무 거점 제보 패널
+           ======================================================== -->
+      <section class="page-panel hidden" id="panel-report">
+        <div class="panel-header">
+          <div>
+            <h2 style="font-size: 14.5px; font-weight: 800; color: var(--text-main);">신규 떡갈나무 거점 등록</h2>
+            <p style="font-size: 10.5px; color: var(--text-muted);">무단 투기 사각지대를 시민 조각 거점으로 제보</p>
+          </div>
+          <span style="font-size:11px; background:#dcfce7; color:#065f46; font-weight:bold; padding:2px 8px; border-radius:10px;">+100P</span>
+        </div>
+
+        <div class="panel-body">
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px; margin-bottom:12px; font-size:12px; color:#1e40af;">
+            📌 <strong>등록 기준:</strong> 일회용 컵, 꽁초 등 폐기물이 <strong>5개 이상</strong> 밀집된 사각지대
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">📍 거점 위치 지정</label>
+            <div style="display:flex; gap:6px; margin-bottom:6px;">
+              <button type="button" onclick="window.ReportControllerInstance.simulateGPS()" class="btn-secondary" style="font-size:12px; padding:8px 10px; flex:1;">
+                🧭 현위치 GPS 수신
+              </button>
+              <button type="button" id="btn-toggle-picker" class="btn-secondary" style="font-size:12px; padding:8px 10px; flex:1;">
+                📍 지도에서 직접 핀 찍기
+              </button>
+            </div>
+            <p id="report-coords-text" style="font-size:11px; color:var(--text-muted); background:var(--bg-base); padding:6px 10px; border-radius:6px; border:1px solid var(--card-border);">
+              지도에서 위치를 클릭하거나 현위치 GPS 버튼을 눌러주세요.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🏷️ 거점 명칭</label>
+            <input type="text" id="report-loc-name" class="form-input" placeholder="예: 안국역 2번 출구 북촌로 진입 골목">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🗑️ 발견된 쓰레기 유형</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:12px;">
+              <label style="background:var(--bg-base); padding:6px 8px; border-radius:6px; border:1px solid var(--card-border); display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" class="chk-trash-type" value="일회용 컵" checked> 일회용 컵
+              </label>
+              <label style="background:var(--bg-base); padding:6px 8px; border-radius:6px; border:1px solid var(--card-border); display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" class="chk-trash-type" value="담배꽁초" checked> 담배꽁초
+              </label>
+              <label style="background:var(--bg-base); padding:6px 8px; border-radius:6px; border:1px solid var(--card-border); display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" class="chk-trash-type" value="비닐·포장재"> 비닐/포장재
+              </label>
+              <label style="background:var(--bg-base); padding:6px 8px; border-radius:6px; border:1px solid var(--card-border); display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" class="chk-trash-type" value="기타"> 캔/병/기타
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🔢 쓰레기 추정 개수 (최소 5개 이상)</label>
+            <input type="number" id="report-trash-count" class="form-input" min="5" max="100" value="8">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">⚠️ 현장 특이사항 / 사각지대 사유</label>
+            <input type="text" id="report-hazard-note" class="form-input" placeholder="예: 쓰레기통이 100m 내에 전혀 없음, 한옥 담벼락 아래 적치">
+          </div>
+
+          <button id="btn-submit-report" class="btn-primary" style="margin-top:10px;">
+            📢 떡갈나무 거점 등록하고 100P 받기
+          </button>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           PAGE 4: 종로구 친환경 스팟 & 제로웨이스트 지도 패널
+           ======================================================== -->
+      <section class="page-panel hidden" id="panel-zerowaste">
+        <div class="panel-header">
+          <div>
+            <h2 style="font-size: 14.5px; font-weight: 800; color: var(--text-main);">안국 에코 샵 & 도심 녹지 쉼터</h2>
+            <p style="font-size: 10.5px; color: var(--text-muted);">친환경 제로웨이스트 매장 소개 및 주민·관광객 휴식 녹지</p>
+          </div>
+          <span style="font-size: 10.5px; background: #dcfce7; color: #15803d; font-weight: 700; padding: 2px 7px; border-radius: 12px;">휴식 & 친환경</span>
+        </div>
+
+        <div class="panel-body">
+          <div class="filter-group">
+            <div class="filter-title"><span>🏷️</span> 장소 유형 및 카테고리</div>
+            <div class="chip-container">
+              <button class="chip-btn active" data-eco-cat="all">전체 보기</button>
+              <button class="chip-btn" data-eco-cat="greenspace">🌳 도심 녹지 쉼터</button>
+              <button class="chip-btn" data-eco-cat="zerowaste">🌿 에코 샵</button>
+              <button class="chip-btn" data-eco-cat="tumbler">☕ 친환경 카페</button>
+              <button class="chip-btn" data-eco-cat="vegan">🥗 비건 식당</button>
+              <button class="chip-btn" data-eco-cat="workshop">🧵 새활용 공방</button>
+            </div>
+          </div>
+          <div id="zero-waste-cards-container"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ========================================================
+         Mobile Bottom Navigation Bar
+         ======================================================== -->
+    <nav class="mobile-nav-bar">
+      <button class="mobile-nav-item active" data-tab="dashboard">
+        <span class="nav-icon">📍</span>
+        <span>숲 지도</span>
+      </button>
+      <button class="mobile-nav-item" data-tab="course">
+        <span class="nav-icon">🏃</span>
+        <span>플로깅</span>
+      </button>
+      <button class="mobile-nav-item" data-tab="report">
+        <span class="nav-icon">📸</span>
+        <span>제보</span>
+      </button>
+      <button class="mobile-nav-item" data-tab="zerowaste">
+        <span class="nav-icon">🌿</span>
+        <span>에코쉼터</span>
+      </button>
+      <button class="mobile-nav-item" data-tab="admin">
+        <span class="nav-icon">🏛️</span>
+        <span>행정제안</span>
+      </button>
+    </nav>
+
+    <!-- ========================================================
+         MODAL A: 떡갈나무 거점 상세 & GPS 50m 플로깅 인증 모달
+         ======================================================== -->
+    <div class="modal-backdrop" id="modal-spot-detail">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div id="modal-tree-icon" style="font-size:24px;">🌳</div>
+            <div>
+              <h3 id="modal-spot-name" style="font-size:15px; font-weight:800; color:var(--text-main);">거점 명칭</h3>
+              <div id="modal-tree-level-title" style="font-size:12px; font-weight:700; color:#059669;">Lv.0 도토리/현무암</div>
+            </div>
+          </div>
+          <button onclick="window.AppStore.closeModal('modal-spot-detail')" style="border:none; background:transparent; font-size:20px; cursor:pointer; color:#94a3b8;">✕</button>
+        </div>
+        
+        <div class="modal-body">
+          <!-- Quote -->
+          <div id="modal-tree-quote" style="font-size:12px; font-style:italic; color:var(--text-muted); background:var(--bg-base); padding:8px 12px; border-radius:8px; margin-bottom:12px;">
+            "모든 인간은 예술가이다"
+          </div>
+
+          <!-- Status & Blindspot Badge -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span id="modal-bin-status-badge" class="popup-tag blindspot">⚠️ 쓰레기통 사각지대</span>
+            <span style="font-size:11px; color:var(--text-muted);" id="modal-spot-desc">투기 현황 설명</span>
+          </div>
+
+          <!-- Level Progress Bar -->
+          <div style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:bold; color:var(--text-main);">
+              <span>성장 진행률</span>
+              <span id="modal-progress-text">다음 단계까지 1회 남음</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="modal-progress-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- GPS 50m Geofencing Banner -->
+          <div class="distance-fence-box invalid" id="modal-gps-fence-box">
+            <div style="font-size:20px;">📍</div>
+            <div style="flex:1;" id="modal-gps-fence-desc">
+              거점 반경 50m 이내 현장에서만 인증이 가능합니다.
+            </div>
+          </div>
+
+          <!-- GPS Simulation Button (For Desktop / Testing Convenience) -->
+          <div style="display:flex; gap:6px; margin-bottom:14px;">
+            <button type="button" id="btn-teleport-spot" class="btn-secondary" style="font-size:11px; padding:6px 10px;">
+              📍 현장 10m 이내로 GPS 모의 이동 (테스트)
+            </button>
+            <button type="button" id="btn-fetch-real-gps" class="btn-secondary" style="font-size:11px; padding:6px 10px;">
+              🧭 실제 GPS 수신
+            </button>
+          </div>
+
+          <!-- Photo Verification Form (Only Enabled when <= 50m) -->
+          <div id="modal-verification-section" style="display:none; border-top:1px dashed #cbd5e1; padding-top:14px;">
+            <div class="form-group">
+              <label class="form-label">📸 수거 완료 현장 사진 등록</label>
+              <div class="upload-box" onclick="document.getElementById('spot-verify-file').click()">
+                <div style="font-size:22px;">📷</div>
+                <div style="font-size:11px; font-weight:bold; color:var(--text-muted);">터치하여 사진 촬영 또는 파일 업로드</div>
+                <input type="file" id="spot-verify-file" accept="image/*" capture="environment" style="display:none;">
+                <img id="spot-verify-preview" class="upload-preview" style="display:none; margin-top:8px;" alt="인증사진">
+              </div>
+            </div>
+
+            <button id="btn-submit-spot-verification" class="btn-primary" style="font-size:13px; padding:10px;">
+              🌱 플로깅 인증 완료하고 떡갈나무 키우기 (+1 Exp)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         MODAL B: 지자체 제안용 '행정 인사이트 대시보드' 모달
+         ======================================================== -->
+    <div class="modal-backdrop" id="modal-admin-report">
+      <div class="modal-card" style="max-width: 580px;">
+        <div class="modal-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="font-size:24px;">🏛️</div>
+            <div>
+              <h3 style="font-size:15px; font-weight:800; color:var(--text-main);">종로구청·환경부 행정 인사이트 대시보드</h3>
+              <p style="font-size:11px; color:#059669; font-weight:600;">안국역 일대 가로휴지통(OA-15069) 사각지대 및 시민 플로깅 데이터 리포트</p>
+            </div>
+          </div>
+          <button onclick="window.AppStore.closeModal('modal-admin-report')" style="border:none; background:transparent; font-size:20px; cursor:pointer; color:#94a3b8;">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- 4 KPI Summary Cards -->
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:16px;">
+            <div style="background:var(--bg-base); border:1px solid var(--card-border); border-radius:10px; padding:8px 4px; text-align:center;">
+              <div style="font-size:14px; font-weight:800; color:var(--text-main);" id="admin-kpi-total">0개소</div>
+              <div style="font-size:10px; color:var(--text-muted);">총 모니터링</div>
+            </div>
+            <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:8px 4px; text-align:center;">
+              <div style="font-size:14px; font-weight:800; color:#065f46;" id="admin-kpi-exp">0회</div>
+              <div style="font-size:10px; color:#047857;">누적 정화 참여</div>
+            </div>
+            <div style="background:#fee2e2; border:1px solid #fca5a5; border-radius:10px; padding:8px 4px; text-align:center;">
+              <div style="font-size:14px; font-weight:800; color:#991b1b;" id="admin-kpi-blind">0개소</div>
+              <div style="font-size:10px; color:#b91c1c;">50m 밖 사각지대</div>
+            </div>
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:8px 4px; text-align:center;">
+              <div style="font-size:14px; font-weight:800; color:#1e40af;" id="admin-kpi-vol">0 L</div>
+              <div style="font-size:10px; color:#2563eb;">총 수거 추정량</div>
+            </div>
+          </div>
+
+          <!-- Top 3 Recommendations -->
+          <div style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <h4 style="font-size:13px; font-weight:800; color:var(--text-main);">🚨 신규 쓰레기통 설치 권고 1순위 구역 (Top 3)</h4>
+              <span style="font-size:11px; color:var(--text-muted);">반경 50m 버퍼 바깥 분석</span>
+            </div>
+            <div id="admin-top-candidates-list"></div>
+          </div>
+
+          <!-- Export Actions -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:16px; border-top:1px solid var(--card-border); padding-top:14px;">
+            <button id="btn-download-geojson" class="btn-secondary" style="font-size:12px; padding:10px;">
+              📁 GeoJSON 공간데이터 다운로드
+            </button>
+            <button id="btn-copy-petition" class="btn-primary" style="font-size:12px; padding:10px; background:#1e293b;">
+              📋 종로구청 건의 공문 전문 복사
+            </button>
+          </div>
+          <p style="font-size:11px; color:#94a3b8; text-align:center; margin-top:8px;">
+            * 복사된 건의문은 안전신문고, 국민신문고, 종로구청 청소행정과 전자민원 서식에 그대로 붙여넣을 수 있습니다.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         MODAL C: 도토리 마일리지 & 쿠폰함 모달
+         ======================================================== -->
+    <div class="modal-backdrop" id="modal-wallet">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 style="font-size:15px; font-weight:800; color:var(--text-main);">내 도토리 마일리지 & 에코 쿠폰함</h3>
+          <button onclick="window.AppStore.closeModal('modal-wallet')" style="border:none; background:transparent; font-size:20px; cursor:pointer;">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="background:linear-gradient(135deg, #10b981 0%, #047857 100%); color:white; border-radius:14px; padding:16px; margin-bottom:14px;">
+            <div style="font-size:12px; opacity:0.9;">보유 안국 도토리 마일리지</div>
+            <div style="font-size:26px; font-weight:900; margin:4px 0;" id="wallet-modal-mileage">700 P</div>
+            <div style="font-size:11px; opacity:0.85;">100P 당 텀블러/친환경 샵 혜택 교환 가능</div>
+          </div>
+          <div id="wallet-coupon-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         MODAL D: 700 떡갈나무 수호목 완주 & 성장 디지털 인증서 모달
+         ======================================================== -->
+    <div class="modal-backdrop" id="modal-certificate">
+      <div class="modal-card" style="max-width: 440px;">
+        <div class="modal-header">
+          <h3 style="font-size:15px; font-weight:800; color:var(--text-main);">🌳 떡갈나무 수호목 완주 인증서</h3>
+          <button onclick="window.AppStore.closeModal('modal-certificate')" style="border:none; background:transparent; font-size:20px; cursor:pointer;">✕</button>
+        </div>
+        <div class="modal-body" style="text-align:center;">
+          <div style="margin-bottom:12px; border-radius:12px; overflow:hidden; box-shadow:var(--shadow-md);">
+            <canvas id="certificate-canvas" style="width:100%; height:auto; display:block; background:#064e3b;"></canvas>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <button id="btn-download-cert" class="btn-primary" style="font-size:12.5px; padding:10px;">
+              💾 이미지 저장
+            </button>
+            <button id="btn-share-cert" class="btn-secondary" style="font-size:12.5px; padding:10px;">
+              📤 SNS 공유하기
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/growth.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/pwa.js"></script>
+  <script src="js/tracker.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/adminReport.js"></script>
+  <script src="js/course.js"></script>
+  <script src="js/report.js"></script>
+  <script src="js/zeroWaste.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

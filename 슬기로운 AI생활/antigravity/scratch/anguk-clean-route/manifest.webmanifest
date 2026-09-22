@@ -1,0 +1,57 @@
+{
+  "name": "안국 700 떡갈나무 - 디지털 사회적 조각",
+  "short_name": "700 떡갈나무",
+  "description": "요셉 보이스의 사회적 조각 철학 기반 안국역 시민 플로깅 및 지자체 행정 제안 PWA",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#0f172a",
+  "theme_color": "#047857",
+  "orientation": "portrait",
+  "lang": "ko-KR",
+  "categories": ["social", "navigation", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "assets/icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "🏃 맞춤 플로깅 코스",
+      "short_name": "플로깅",
+      "description": "사각지대 거점을 순회하는 맞춤 플로깅 코스 생성",
+      "url": "./index.html#course",
+      "icons": [{ "src": "assets/icons/favicon.svg", "sizes": "64x64" }]
+    },
+    {
+      "name": "📸 신규 거점 제보",
+      "short_name": "거점 제보",
+      "description": "무단 투기 사각지대를 떡갈나무 거점으로 신규 등록",
+      "url": "./index.html#report",
+      "icons": [{ "src": "assets/icons/favicon.svg", "sizes": "64x64" }]
+    },
+    {
+      "name": "🏛️ 지자체 제안 리포트",
+      "short_name": "행정 리포트",
+      "description": "종로구청 및 환경부 제출용 공간분석 리포트",
+      "url": "./index.html#admin",
+      "icons": [{ "src": "assets/icons/favicon.svg", "sizes": "64x64" }]
+    },
+    {
+      "name": "🌿 에코 샵 & 도심 녹지",
+      "short_name": "에코 쉼터",
+      "description": "안국역 제로웨이스트 샵 및 도심 휴식 쉼터 확인",
+      "url": "./index.html#zerowaste",
+      "icons": [{ "src": "assets/icons/favicon.svg", "sizes": "64x64" }]
+    }
+  ]
+}

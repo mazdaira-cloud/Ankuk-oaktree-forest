@@ -1,0 +1,22 @@
+{
+  "name": "anguk-700-digital-oaks",
+  "version": "1.0.0",
+  "description": "안국역 700그루의 디지털 떡갈나무 - 요셉 보이스 사회적 조각 테마 시민 플로깅 & 행정 제안 PWA Web App",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx -y serve . -l 3000",
+    "start": "npx -y serve . -l 3000",
+    "serve": "npx -y http-server . -p 8080"
+  },
+  "keywords": [
+    "pwa",
+    "web-app",
+    "anguk",
+    "leaflet",
+    "social-sculpture",
+    "plogging",
+    "smart-city"
+  ],
+  "author": "Joseph Beuys Social Sculpture Initiative",
+  "license": "MIT"
+}

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>안국 클린 루트 (Anguk Clean-Route) | 안국역 플로깅 쓰레기 지도</title>
+  <meta name="description" content="안국역 일대 도심 관광지 무단 투기 쓰레기 핫스팟을 시각화하고 최적의 플로깅 경로를 추천하는 시민 참여형 환경 정화 플랫폼">
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts & Pretendard -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app" class="app-layout">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand-badge">
+          <i class="fa-solid fa-seedling"></i> Clean-Route
+        </div>
+        <h1 class="logo-title">
+          <span>안국 클린 루트</span>
+          <small>Anguk Plogging & Trash Map</small>
+        </h1>
+      </div>
+      
+      <!-- Quick Stats Widget -->
+      <div class="header-stats">
+        <div class="stat-pill">
+          <i class="fa-solid fa-triangle-exclamation text-warning"></i>
+          <div class="stat-text">
+            <span class="stat-value" id="stat-active-spots">12</span>
+            <span class="stat-label">주의 핫스팟</span>
+          </div>
+        </div>
+        <div class="stat-pill">
+          <i class="fa-solid fa-circle-check text-success"></i>
+          <div class="stat-text">
+            <span class="stat-value" id="stat-cleaned-spots">28</span>
+            <span class="stat-label">정화 완료</span>
+          </div>
+        </div>
+        <div class="stat-pill">
+          <i class="fa-solid fa-users text-info"></i>
+          <div class="stat-text">
+            <span class="stat-value" id="stat-participants">142</span>
+            <span class="stat-label">참여 플로거</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content with Tabs -->
+    <div class="main-container">
+      <!-- Navigation Bar -->
+      <nav class="tab-navigation">
+        <button class="nav-tab active" data-tab="tab-map">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <span>1. 핫스팟 지도</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-course">
+          <i class="fa-solid fa-route"></i>
+          <span>2. 플로깅 코스</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-report">
+          <i class="fa-solid fa-camera"></i>
+          <span>3. 제보 & 정화 인증</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-eco">
+          <i class="fa-solid fa-leaf"></i>
+          <span>4. 제로웨이스트 상점</span>
+        </button>
+      </nav>
+
+      <div class="tab-content-area">
+        <!-- ================= TAB 1: INTERACTIVE MAP ================= -->
+        <section id="tab-map" class="tab-pane active">
+          <!-- Control Panel -->
+          <div class="map-controls glass-panel">
+            <div class="control-group">
+              <label class="control-label"><i class="fa-solid fa-filter"></i> 쓰레기 유형</label>
+              <div class="filter-chips" id="trash-type-filters">
+                <button class="chip active" data-type="all">전체</button>
+                <button class="chip" data-type="plastic"><i class="fa-solid fa-mug-hot"></i> 일회용 컵</button>
+                <button class="chip" data-type="cigarette"><i class="fa-solid fa-smoking"></i> 담배꽁초</button>
+                <button class="chip" data-type="packaging"><i class="fa-solid fa-box-open"></i> 포장재·비닐</button>
+                <button class="chip" data-type="etc">기타</button>
+              </div>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label"><i class="fa-solid fa-fire"></i> 밀집도 기준</label>
+              <div class="filter-chips" id="density-filters">
+                <button class="chip active" data-density="all">전체 밀집도</button>
+                <button class="chip chip-warning" data-density="warning">🟡 주의 (5~9개)</button>
+                <button class="chip chip-danger" data-density="danger">🔴 심각 (10개+)</button>
+              </div>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label"><i class="fa-solid fa-layer-group"></i> 지도 레이어</label>
+              <div class="layer-toggles">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="layer-hotspots" checked>
+                  <span class="slider"></span>
+                  <span class="toggle-label">🚨 쓰레기 핫스팟</span>
+                </label>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="layer-trashbins" checked>
+                  <span class="slider"></span>
+                  <span class="toggle-label">🗑️ 공공 쓰레기통</span>
+                </label>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="layer-ecospots" checked>
+                  <span class="slider"></span>
+                  <span class="toggle-label">🌱 제로웨이스트 매장</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Map & Details View -->
+          <div class="map-view-wrapper">
+            <div id="map" class="leaflet-map"></div>
+
+            <!-- Floating Spot Detail Card -->
+            <div id="spot-detail-card" class="spot-detail-card glass-panel hidden">
+              <button class="close-btn" id="close-detail-btn"><i class="fa-solid fa-xmark"></i></button>
+              <div class="spot-card-badge" id="spot-card-badge">🟡 주의 (8개)</div>
+              <h3 id="spot-card-title">안국역 3번 출구 인근 골목 화단</h3>
+              <p class="spot-card-location"><i class="fa-solid fa-location-dot"></i> <span id="spot-card-address">서울 종로구 율곡로 45 부근</span></p>
+              
+              <div class="spot-card-tags" id="spot-card-types">
+                <span class="tag">일회용 플라스틱 컵</span>
+                <span class="tag">담배꽁초</span>
+              </div>
+
+              <div class="spot-card-meta">
+                <div><i class="fa-solid fa-calendar-day"></i> 제보: <span id="spot-card-date">2026-09-08</span></div>
+                <div><i class="fa-solid fa-bolt"></i> 권장 난이도: <span id="spot-card-difficulty" class="text-warning">보통 (1인 10분)</span></div>
+              </div>
+
+              <div class="spot-card-actions">
+                <button class="btn btn-primary" id="btn-start-plogging-here">
+                  <i class="fa-solid fa-person-running"></i> 이 지점으로 플로깅 시작
+                </button>
+                <button class="btn btn-secondary" id="btn-clean-spot-here">
+                  <i class="fa-solid fa-check"></i> 정화 인증하기
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= TAB 2: PLOGGING COURSE ================= -->
+        <section id="tab-course" class="tab-pane">
+          <div class="course-container">
+            <div class="course-sidebar glass-panel">
+              <h2 class="section-title"><i class="fa-solid fa-route"></i> 맞춤형 플로깅 코스 추천</h2>
+              <p class="section-desc">출발지와 목표 시간을 선택하면 쓰레기 핫스팟과 공공 분리배출함을 경유하는 최적 코스를 안내합니다.</p>
+
+              <div class="form-group">
+                <label><i class="fa-solid fa-location-crosshairs"></i> 출발 지점</label>
+                <select id="course-start" class="form-select">
+                  <option value="anguk-exit3">안국역 3번 출구 (북촌 입구)</option>
+                  <option value="anguk-exit2">안국역 2번 출구 (재동 방면)</option>
+                  <option value="anguk-exit6">안국역 6번 출구 (인사동 입구)</option>
+                  <option value="court">헌법재판소 정문 앞</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label><i class="fa-solid fa-stopwatch"></i> 목표 시간 및 거리</label>
+                <div class="segmented-control" id="course-time-select">
+                  <button class="segment active" data-time="30">30분 코스 (1.2km)</button>
+                  <button class="segment" data-time="60">60분 코스 (2.5km)</button>
+                  <button class="segment" data-time="90">90분 챌린지 (4.0km)</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label><i class="fa-solid fa-compass"></i> 코스 테마</label>
+                <div class="radio-cards">
+                  <label class="radio-card active">
+                    <input type="radio" name="course-theme" value="alley" checked>
+                    <div class="radio-card-content">
+                      <div class="card-icon"><i class="fa-solid fa-building-wheat"></i></div>
+                      <div class="card-text">
+                        <strong>북촌 골목길 집중 정화</strong>
+                        <small>계동길 및 북촌 한옥마을 카페거리</small>
+                      </div>
+                    </div>
+                  </label>
+                  <label class="radio-card">
+                    <input type="radio" name="course-theme" value="insadong">
+                    <div class="radio-card-content">
+                      <div class="card-icon"><i class="fa-solid fa-palette"></i></div>
+                      <div class="card-text">
+                        <strong>인사동 문화거리 코스</strong>
+                        <small>안국역 6번 출구 ~ 쌈지길 ~ 익선동</small>
+                      </div>
+                    </div>
+                  </label>
+                  <label class="radio-card">
+                    <input type="radio" name="course-theme" value="flat">
+                    <div class="radio-card-content">
+                      <div class="card-icon"><i class="fa-solid fa-shoe-prints"></i></div>
+                      <div class="card-text">
+                        <strong>평지 & 대로변 쾌적 코스</strong>
+                        <small>율곡로 대로변 및 헌법재판소 둘레길</small>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <button class="btn btn-primary btn-block" id="btn-generate-route">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> 최적 플로깅 루트 생성
+              </button>
+
+              <!-- Course Summary Result -->
+              <div class="course-result-card" id="course-result-card">
+                <h4><i class="fa-solid fa-chart-line"></i> 생성된 코스 분석</h4>
+                <div class="result-grid">
+                  <div class="res-item">
+                    <span class="res-label">경유 핫스팟</span>
+                    <span class="res-value" id="res-spots-count">4개소</span>
+                  </div>
+                  <div class="res-item">
+                    <span class="res-label">배출 쓰레기통</span>
+                    <span class="res-value" id="res-bins-count">2개소</span>
+                  </div>
+                  <div class="res-item">
+                    <span class="res-label">예상 소모 칼로리</span>
+                    <span class="res-value" id="res-calories">145 kcal</span>
+                  </div>
+                  <div class="res-item">
+                    <span class="res-label">예상 수거량</span>
+                    <span class="res-value text-success" id="res-trash-est">약 25개</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Course Map View -->
+            <div class="course-map-area">
+              <div id="course-map" class="leaflet-map"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= TAB 3: REPORT & CERTIFY ================= -->
+        <section id="tab-report" class="tab-pane">
+          <div class="report-wrapper">
+            <!-- Mode Switcher -->
+            <div class="mode-switcher-bar">
+              <button class="mode-btn active" id="btn-mode-report">
+                <i class="fa-solid fa-triangle-exclamation"></i> 1. 신규 핫스팟 제보
+              </button>
+              <button class="mode-btn" id="btn-mode-certify">
+                <i class="fa-solid fa-hand-holding-heart"></i> 2. 플로깅 정화 인증
+              </button>
+            </div>
+
+            <!-- Form 1: Report New Hotspot -->
+            <div id="form-report-container" class="report-form-container glass-panel">
+              <div class="form-header">
+                <h2>무단 투기 쓰레기 핫스팟 제보</h2>
+                <p>5개 이상의 쓰레기가 방치된 안국역 일대 지점을 제보해주세요. 플로거들에게 전달됩니다.</p>
+              </div>
+
+              <form id="new-spot-form" onsubmit="return false;">
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label><i class="fa-solid fa-tag"></i> 장소 명칭/위치 설명</label>
+                    <input type="text" id="report-title" class="form-input" placeholder="예: 안국역 3번 출구 스타벅스 뒤 화단" required>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label><i class="fa-solid fa-location-dot"></i> 위치 선택 (지도 클릭 또는 GPS)</label>
+                    <div class="input-with-btn">
+                      <input type="text" id="report-coords" class="form-input" placeholder="위도, 경도 (지도에서 선택)" readonly value="37.5765, 126.9856">
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-gps-current"><i class="fa-solid fa-crosshairs"></i> 현재 위치</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label><i class="fa-solid fa-trash-can"></i> 발견된 쓰레기 종류 (다중 선택)</label>
+                  <div class="checkbox-group">
+                    <label><input type="checkbox" name="report-type" value="플라스틱 컵" checked> <span>일회용 플라스틱 컵</span></label>
+                    <label><input type="checkbox" name="report-type" value="담배꽁초" checked> <span>담배꽁초</span></label>
+                    <label><input type="checkbox" name="report-type" value="비닐 및 포장재"> <span>비닐/음식 포장재</span></label>
+                    <label><input type="checkbox" name="report-type" value="캔 및 병류"> <span>음료 캔/유리병</span></label>
+                    <label><input type="checkbox" name="report-type" value="기타 잡쓰레기"> <span>기타</span></label>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label><i class="fa-solid fa-calculator"></i> 예상 쓰레기 개수</label>
+                    <input type="number" id="report-count" class="form-input" min="5" value="8" placeholder="5개 이상 입력">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label><i class="fa-solid fa-circle-exclamation"></i> 위험/특이사항 메모</label>
+                    <input type="text" id="report-notes" class="form-input" placeholder="예: 깨진 유리 조각 주의, 집게 필수">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label><i class="fa-solid fa-image"></i> 현장 사진 첨부</label>
+                  <div class="upload-dropzone" id="report-dropzone">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>클릭하여 사진을 업로드하거나 여기로 드래그하세요</span>
+                    <input type="file" id="report-file-input" accept="image/*" class="file-input-hidden">
+                    <div id="report-img-preview" class="img-preview hidden"></div>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-submit-report">
+                  <i class="fa-solid fa-paper-plane"></i> 핫스팟 제보 등록하기 (+50P 적립)
+                </button>
+              </form>
+            </div>
+
+            <!-- Form 2: Clean Certification -->
+            <div id="form-certify-container" class="report-form-container glass-panel hidden">
+              <div class="form-header">
+                <h2>플로깅 정화 완료 인증</h2>
+                <p>정화 활동을 마친 핫스팟을 인증해주세요. 지도 상태가 업데이트되고 그린 마일리지가 적립됩니다.</p>
+              </div>
+
+              <form id="certify-form" onsubmit="return false;">
+                <div class="form-group">
+                  <label><i class="fa-solid fa-map-pin"></i> 정화 완료한 핫스팟 선택</label>
+                  <select id="certify-spot-select" class="form-select">
+                    <!-- Dynamic Options -->
+                  </select>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label><i class="fa-solid fa-bag-shopping"></i> 수거한 쓰레기양 (종량제 봉투 기준)</label>
+                    <select id="certify-volume" class="form-select">
+                      <option value="5">5L 봉투 1장 (소형)</option>
+                      <option value="10" selected>10L 봉투 1장 (중형)</option>
+                      <option value="20">20L 봉투 1장 (대형)</option>
+                      <option value="30">20L 이상 대량 수거</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label><i class="fa-solid fa-clock"></i> 소요된 정화 시간</label>
+                    <input type="text" id="certify-duration" class="form-input" placeholder="예: 25분">
+                  </div>
+                </div>
+
+                <div class="photo-compare-grid">
+                  <div class="form-group">
+                    <label><i class="fa-solid fa-camera"></i> 수거 전 (Before) 사진</label>
+                    <div class="upload-dropzone mini">
+                      <i class="fa-solid fa-image"></i>
+                      <span>Before 사진 업로드</span>
+                      <input type="file" accept="image/*" class="file-input-hidden">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label><i class="fa-solid fa-camera-rotate"></i> 수거 후 (After) 사진 (필수)</label>
+                    <div class="upload-dropzone mini">
+                      <i class="fa-solid fa-sparkles"></i>
+                      <span>After 깨끗해진 사진 업로드</span>
+                      <input type="file" accept="image/*" class="file-input-hidden">
+                    </div>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-success btn-block btn-lg" id="btn-submit-certify">
+                  <i class="fa-solid fa-award"></i> 정화 인증 완료 및 배지 획득 (+200P)
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= TAB 4: ZERO WASTE & ECO ================= -->
+        <section id="tab-eco" class="tab-pane">
+          <div class="eco-container">
+            <div class="eco-hero glass-panel">
+              <div class="eco-hero-text">
+                <h2>🌿 안국역 친환경 상권 & 제로웨이스트</h2>
+                <p>플로깅으로 종로를 깨끗하게 만들고, 인근 친환경 매장에서 텀블러 할인 및 플로거 전용 에코 혜택을 누려보세요!</p>
+              </div>
+              <div class="eco-stats-card">
+                <div class="badge-icon"><i class="fa-solid fa-medal"></i></div>
+                <div>
+                  <strong>내 적립 마일리지</strong>
+                  <span class="mileage-val">350 P</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="eco-grid" id="eco-grid">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- App JS -->
+  <script src="app.js"></script>
+</body>
+</html>
